@@ -1,0 +1,7 @@
+IN(A, 8)
+IN(B, 8)
+IN(C, 4)
+OUT(A)
+IN(C, 4)
+OUT(B)
+OUT(C)
