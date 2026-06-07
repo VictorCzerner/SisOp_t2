@@ -1,4 +1,5 @@
 from instruction import instruction
+from manager import worst_fit, circular_fit
 
 class memory:
     def __init__(self, size):
@@ -46,11 +47,22 @@ class memory:
             else:
                 i += 1
 
+    def worst_fit(self, comandos):
+        worst_fit(self, comandos)
+
+    def circular_fit(self, comandos):
+        circular_fit(self, comandos)
+
     def __str__(self):
         text = ""
         for block in self.blocks:
-            owner = block["owner"] if block["owner"] is not None else "free"
-            text += f"[{owner}: start={block['start']} size={block['size']}]"
+            if block["owner"] is None:
+                owner = "free"
+            else:
+                owner = block["owner"]
+            text += f"[{owner}: start={block['start']} size={block['size']}] "
         return text
+    
+
 
     __repr__ = __str__
