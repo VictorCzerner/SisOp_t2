@@ -1,68 +1,99 @@
 from instruction import instruction
-from manager import worst_fit, circular_fit
+from block import Block
+
 
 class memory:
     def __init__(self, size):
         self.size = size
-        self.blocks = [{"start": 0, "size": size, "owner": None}]
-        self.pointer = 0   # used by circular-fit
+        self.blocks = [Block(size=size, start=0, id=None)]
 
-    def print_free_blocks(self):
+
+    def allocate(self, i, inst):
+        block = self.blocks[i]
+        original_start = block.start
+        free_memory = block.size - inst.size
+
+        block.size = inst.size
+        block.id = inst.id
+
+        if free_memory > 0:
+            self.blocks.insert(i + 1, Block(id=None, start=original_start + inst.size, size=free_memory))
+
+    def allocate_buddy(self, index, inst):
+        best_block = self.blocks[index]
+        while True:
+            if best_block.size / 2 >= inst.size:
+                best_block.size = best_block.size / 2
+                best_block.pos = (best_block.pos * 2) + 1
+                new_block = Block(id=None, start=best_block.start + best_block.size, size=best_block.size, pos=best_block.pos + 1)
+                self.blocks.insert(index + 1, new_block)
+            else:
+                break
+        best_block.id = inst.id
+        best_block.frag = best_block.size - inst.size
+
+
+    def deallocate(self, inst):
+        for block in self.blocks:
+            if block.id == inst.id:
+                block.id = None
+                self.merge_free_blocks(self.blocks.index(block))
+                break
+    
+    def dealocate_buddy(self, inst):
+        block = None
+        for blc in self.blocks:
+            if blc.id == inst.id:
+                block = blc
+                break
+
+        while True:
+            block.id = None
+            block.frag = 0
+            if block.pos == 0:
+                break
+            if block.pos % 2 == 1:
+                pair = self.blocks[self.blocks.index(block) + 1]
+                if pair.id == None:
+                    block.size = block.size + pair.size
+                    block.pos = block.pos // 2
+                    self.blocks.remove(pair)
+                else:
+                    break
+            else:
+                pair = self.blocks[self.blocks.index(block) - 1]
+                if pair.id == None:
+                    pair.size = block.size + pair.size
+                    pair.pos = (block.pos // 2) - 1
+                    self.blocks.remove(block)
+                    block = pair
+                else:
+                    break  
+                     
+
+
+            
+    def merge_free_blocks(self, index):
+        if index + 1 <= len(self.blocks):
+            if self.blocks[index + 1].id == None:
+                self.blocks[index].size = self.blocks[index].size + self.blocks[index + 1].size
+                self.blocks.pop(index + 1)
+        if index > 0:
+            if self.blocks[index - 1].id == None:
+                self.blocks[index - 1].size += self.blocks[index].size
+                self.blocks.pop(index)
+
+    def print_memory(self):
         text = "|"
         for block in self.blocks:
-            if block["owner"] is None:
-                text += f" {block['size']} |"
-        print(text)
-
-    def occupy(self, i, inst: instruction):
-        block = self.blocks[i]
-        original_start = block["start"]
-        remainder = block["size"] - inst.size
-
-        block["size"] = inst.size
-        block["owner"] = inst.id
-
-        if remainder > 0:
-            self.blocks.insert(i + 1, {
-                "start": original_start + inst.size,
-                "size": remainder,
-                "owner": None,
-            })
-
-    def release(self, inst: instruction):
-        for block in self.blocks:
-            if block["owner"] == inst.id:
-                block["owner"] = None
-                break
-        self.coalesce()
-
-    def coalesce(self):
-        i = 0
-        while i < len(self.blocks) - 1:
-            current = self.blocks[i]
-            next_block = self.blocks[i + 1]
-            if current["owner"] is None and next_block["owner"] is None:
-                current["size"] += next_block["size"]
-                self.blocks.pop(i + 1)        # merge, do NOT advance i
-            else:
-                i += 1
-
-    def worst_fit(self, comandos):
-        worst_fit(self, comandos)
-
-    def circular_fit(self, comandos):
-        circular_fit(self, comandos)
-
-    def __str__(self):
-        text = ""
-        for block in self.blocks:
-            if block["owner"] is None:
-                owner = "free"
-            else:
-                owner = block["owner"]
-            text += f"[{owner}: start={block['start']} size={block['size']}] "
+            if block.id is None:
+                text += f" {block.size} |"
         return text
     
-
-
-    __repr__ = __str__
+    def get_internal_fragmentation(self):
+        value = 0
+        for block in self.blocks:
+            if block.id is not None:
+                value += block.frag
+        return value
+    
