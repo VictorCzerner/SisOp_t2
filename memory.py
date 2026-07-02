@@ -74,7 +74,7 @@ class memory:
 
             
     def merge_free_blocks(self, index):
-        if index + 1 <= len(self.blocks):
+        if index + 1 < len(self.blocks):
             if self.blocks[index + 1].id == None:
                 self.blocks[index].size = self.blocks[index].size + self.blocks[index + 1].size
                 self.blocks.pop(index + 1)
