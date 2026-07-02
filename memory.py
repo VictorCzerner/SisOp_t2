@@ -6,7 +6,7 @@ class memory:
     def __init__(self, size):
         self.size = size
         self.blocks = [Block(size=size, start=0, id=None)]
-
+        self.last_visited = 0
 
     def allocate(self, i, inst):
         block = self.blocks[i]
